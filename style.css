@@ -1,0 +1,110 @@
+/* --- Global Styling --- */
+body {
+    /* Background Image Fix: Brightness ko 0.4 rakha hai taaki image 'black type' na dikhe */
+    background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('bg-dashboard.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* --- Glassmorphism Container --- */
+.glass-container {
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(15px); 
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 25px;
+    width: 95%;
+    max-width: 550px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+}
+
+/* --- Sections (Fieldset) --- */
+fieldset {
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    text-align: left;
+}
+
+legend {
+    font-weight: bold;
+    color: #00d2ff;
+    padding: 0 10px;
+}
+
+/* --- Inputs & Buttons --- */
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    box-sizing: border-box;
+    outline: none;
+}
+
+button {
+    background: linear-gradient(135deg, #00d2ff, #0076ad);
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    width: 100%;
+    margin-top: 5px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+}
+
+/* --- Dashboard Specific --- */
+.stat-card {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    border-radius: 12px;
+    border-bottom: 3px solid #00d2ff;
+    text-align: center;
+}
+
+.stat-card h2 {
+    margin: 5px 0;
+}
+
+/* Animation for High/Low BPM Alerts */
+#medAlert {
+    animation: alert-glow 1.5s infinite alternate;
+}
+
+@keyframes alert-glow {
+    from { box-shadow: 0 0 10px red; }
+    to { box-shadow: 0 0 25px red; }
+}
+
+/* --- Scrollbar Customization --- */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: #00d2ff;
+    border-radius: 10px;
+}

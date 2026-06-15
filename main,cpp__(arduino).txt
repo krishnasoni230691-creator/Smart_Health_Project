@@ -1,0 +1,155 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include "MAX30105.h"
+#include "heartRate.h"
+#include <TinyGPS++.h>
+#include <HardwareSerial.h>
+
+// =================== CONFIGURATION CORNER ===================
+const char* ssid = "krishna2703";         // Apne Wi-Fi ka Naam dalein
+const char* password = "123456789"; // Apne Wi-Fi ka Password dalein
+
+// Apne Laptop ka IP address dalein (CMD me ipconfig chala kar check karein)
+const char* baseUrl = "http:// 10.188.252.210:5000"; 
+// ============================================================
+
+const int buzzerPin = 13;
+const uint32_t GPSBaud = 115200;
+
+TinyGPSPlus gps;
+HardwareSerial SerialGPS(2); 
+MAX30105 particleSensor;
+
+const byte RATE_SIZE = 4; 
+byte rates[RATE_SIZE]; 
+byte rateSpot = 0;
+long lastBeat = 0; 
+float beatsPerMinute;
+int beatAvg = 0;
+
+// Default empty ID, server se dynamic pull hokar update ho jayegi
+String currentPatientId = "000000000000000000000000"; 
+
+void connectToWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  Serial.print("Connecting to Wi-Fi");
+  WiFi.begin(ssid, password);
+  int retries = 0;
+  while (WiFi.status() != WL_CONNECTED && retries < 20) {
+    delay(500);
+    Serial.print(".");
+    retries++;
+  }
+  if(WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWi-Fi Connected successfully!");
+  }
+}
+
+void fetchLatestPatientId() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = String(baseUrl) + "/api/latest-patient";
+    http.begin(url);
+    
+    int httpCode = http.GET();
+    if (httpCode == 200) {
+      String response = http.getString();
+      int index = response.indexOf("userId\":\"");
+      if (index != -1) {
+        currentPatientId = response.substring(index + 9, response.indexOf("\"", index + 9));
+        Serial.print("Dynamic Patient ID Synced: ");
+        Serial.println(currentPatientId);
+      }
+    } else {
+      Serial.println("Waiting for Patient Registry on Dashboard...");
+    }
+    http.end();
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  pinMode(buzzerPin, OUTPUT);
+  digitalWrite(buzzerPin, LOW); 
+
+  connectToWiFi();
+  fetchLatestPatientId();
+
+  SerialGPS.begin(GPSBaud, SERIAL_8N1, 16, 17);
+
+  if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
+    Serial.println("Error: MAX30102 missing! Execution Halted.");
+    while (1); 
+  }
+  particleSensor.setup(); 
+}
+
+void loop() {
+  connectToWiFi();
+
+  // Jab tak dashboard par koi naya patient register nahi hota, tab tak rukega
+  if (currentPatientId == "000000000000000000000000") {
+    fetchLatestPatientId();
+    delay(3000);
+    return;
+  }
+
+  // Heart Rate Sensor Logic
+  long irValue = particleSensor.getIR();
+  if (irValue > 50000) { 
+    if (checkForBeat(irValue) == true) {
+      long delta = millis() - lastBeat;
+      lastBeat = millis();
+      beatsPerMinute = 60 / (delta / 1000.0);
+
+      if (beatsPerMinute < 255 && beatsPerMinute > 30) {
+        rates[rateSpot++] = (byte)beatsPerMinute; 
+        rateSpot %= RATE_SIZE; 
+        beatAvg = 0;
+        for (byte x = 0 ; x < RATE_SIZE ; x++) beatAvg += rates[x];
+        beatAvg /= RATE_SIZE;
+      }
+    }
+  } else {
+    beatsPerMinute = 0;
+    beatAvg = 0;
+  }
+
+  // GPS Parsing
+  while (SerialGPS.available() > 0) {
+    gps.encode(SerialGPS.read());
+  }
+
+  // Active Buzzer Alert
+  if (irValue > 50000 && (beatAvg > 150 || beatAvg < 60)) {
+    digitalWrite(buzzerPin, HIGH); 
+  } else {
+    digitalWrite(buzzerPin, LOW);  
+  }
+
+  // Data Push Payload Engine (Every 2 Seconds)
+  static unsigned long lastSync = 0;
+  if (millis() - lastSync > 2000) {
+    lastSync = millis();
+
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      String url = String(baseUrl) + "/api/sensor-data";
+      http.begin(url);
+      http.addHeader("Content-Type", "application/json");
+
+      double latitude = gps.location.isValid() ? gps.location.lat() : 23.2599; 
+      double longitude = gps.location.isValid() ? gps.location.lng() : 77.4126; 
+
+      String payload = "{\"patientId\":\"" + currentPatientId + "\",\"bpm\":" + String(beatAvg) + ",\"lat\":" + String(latitude, 6) + ",\"lng\":" + String(longitude, 6) + "}";
+      
+      int responseCode = http.POST(payload);
+      Serial.print("BPM: "); Serial.print(beatAvg);
+      Serial.print(" | Server Sync Response: "); Serial.println(responseCode);
+      http.end();
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "smart-health-band",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "mongoose": "^7.8.9"
+  }
+}
+S
