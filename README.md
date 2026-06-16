@@ -10,7 +10,7 @@ When an abnormal health condition is detected, the system automatically sends an
 
 ## Features
 
-* 📊 Real-time Heart Rate Monitoring
+* 📊 Real-time Heart Rate  Monitoring
 * 🩺 Live Blood Pressure Tracking
 * 🌐 Web-based Dashboard
 * 🚨 Automatic Emergency Detection
